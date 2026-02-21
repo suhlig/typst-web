@@ -14,23 +14,38 @@ import (
 //go:embed index.html
 var indexHTML string
 
-//go:embed embedded/typst/typst
+//go:embed embedded/typst/darwin/arm64/typst
 var typstBin []byte
 
 func extractTypst() (string, error) {
-	cache, _ := os.UserCacheDir()
+	cache, err := os.UserCacheDir()
+
+	if err != nil {
+		return "", err
+	}
+
 	dir := filepath.Join(cache, "typstweb")
-	os.MkdirAll(dir, 0755)
+	err = os.MkdirAll(dir, 0755)
+
+	if err != nil {
+		return "", err
+	}
 
 	path := filepath.Join(dir, "typst")
 	tmp := path + ".tmp"
 
-	if err := os.WriteFile(tmp, typstBin, 0755); err != nil {
+	err = os.WriteFile(tmp, typstBin, 0755)
+
+	if err != nil {
 		return "", err
 	}
-	if err := os.Rename(tmp, path); err != nil {
+
+	err = os.Rename(tmp, path)
+
+	if err != nil {
 		return "", err
 	}
+
 	return path, nil
 }
 
