@@ -1,5 +1,34 @@
 # typst-web — Embedded Typst Web Compiler (Go)
 
+# Build
+
+Fetch the typst binaries:
+
+```command
+go generate ./cmd/server
+```
+
+Build for all supported platforms:
+
+```command
+for os in darwin linux; do                                                         [2026-02-21 19:42:42]
+  for arch in arm64 amd64; do
+    GOOS=$os GOARCH=$arch go build -o spike-typst-embed-web-$os-$arch ./cmd/server
+  done
+done
+```
+
+or
+
+```command
+$ for pair in darwin-arm64 darwin-amd64 linux-arm64 linux-amd64; do
+  IFS=- read -r os arch <<<"$pair"
+  GOOS=$os GOARCH=$arch go build -o spike-typst-embed-web-$os-$arch ./cmd/server
+done
+```
+
+# Overview
+
 This project is a minimal demonstration of how to embed the **Typst** compiler into a Go application, execute it safely at runtime, and expose it via a simple web interface — **without** runtime downloads, build-time side effects, or external orchestration tools.
 
 The result is a single Linux Go binary that:

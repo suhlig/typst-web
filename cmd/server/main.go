@@ -12,9 +12,9 @@ import (
 )
 
 //go:generate go run ../typst-fetch
+
 //go:embed index.html
 var indexHTML string
-
 
 func extractTypst() (string, error) {
 	cache, err := os.UserCacheDir()
