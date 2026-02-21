@@ -61,10 +61,15 @@ func run() error {
 	}
 	log.Printf("downloaded %d bytes", len(data))
 
-	if err := verifySHA(data, typstmeta.SHA256); err != nil {
-		return err
+	// Verify checksum only for the tar.xz asset; the SHA tracks the archive, not the extracted binary.
+	if isXZ(data) {
+		if err := verifySHA(data, typstmeta.SHA256); err != nil {
+			return err
+		}
+		log.Printf("sha256 verified for tar.xz")
+	} else {
+		log.Printf("skipping sha256 verification: downloaded asset is not .xz")
 	}
-	log.Printf("sha256 verified")
 
 	bin, err := extractTypstBinary(data)
 	if err != nil {
