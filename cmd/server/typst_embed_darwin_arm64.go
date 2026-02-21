@@ -1,8 +1,8 @@
 //go:build darwin && arm64
 
-package embedded
+package main
 
 import _ "embed"
 
-//go:embed typst/darwin/arm64/typst
+//go:embed embedded/typst/darwin/arm64/typst
 var typstBin []byte

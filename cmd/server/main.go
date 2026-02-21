@@ -11,6 +11,8 @@ import (
 	"path/filepath"
 )
 
+//go:generate go run ../typst-fetch
+
 //go:embed index.html
 var indexHTML string
 

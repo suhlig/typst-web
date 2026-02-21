@@ -1,11 +1,9 @@
-package embedded
+package typstmeta
 
 import (
 	"fmt"
 	"os"
 )
-
-//go:generate go run ../cmd/typst-fetch
 
 const Version = "0.14.2"
 
