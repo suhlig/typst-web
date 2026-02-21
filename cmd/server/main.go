@@ -11,11 +11,10 @@ import (
 	"path/filepath"
 )
 
+//go:generate go run ../typst-fetch
 //go:embed index.html
 var indexHTML string
 
-//go:embed embedded/typst/darwin/arm64/typst
-var typstBin []byte
 
 func extractTypst() (string, error) {
 	cache, err := os.UserCacheDir()

@@ -90,7 +90,7 @@ func mainE(ctx context.Context) error {
 			return errors.New("extracted typst binary is empty")
 		}
 
-		outPath := filepath.FromSlash(filepath.Join("typst", p.OS, p.Arch, "typst"))
+		outPath := filepath.FromSlash(filepath.Join("cmd", "server", "embedded", "typst", p.OS, p.Arch, "typst"))
 
 		if err := atomicWrite(outPath, bin, 0644); err != nil {
 			return fmt.Errorf("write %s: %w", outPath, err)
