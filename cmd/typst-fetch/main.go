@@ -13,14 +13,14 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"time"
+	typstmeta "typstweb/cmd/server/embedded"
 
 	"github.com/google/go-github/v83/github"
 	"github.com/ulikunitz/xz"
 	"golang.org/x/oauth2"
-
-	"typstweb/internal/typstmeta"
 )
 
 func main() {
@@ -38,52 +38,63 @@ func run() error {
 
 	// Try v<version>, then <version>
 	tag := "v" + typstmeta.Version
+
 	rel, resp, err := client.Repositories.GetReleaseByTag(ctx, owner, repo, tag)
+
 	if err != nil {
 		if resp != nil && resp.StatusCode == http.StatusNotFound {
 			tag = typstmeta.Version
 			rel, resp, err = client.Repositories.GetReleaseByTag(ctx, owner, repo, tag)
 		}
 	}
+
 	if err != nil {
 		return fmt.Errorf("get release by tag %q: %w", tag, err)
 	}
 
 	asset, err := pickAsset(rel.Assets)
+
 	if err != nil {
 		return err
 	}
+
 	log.Printf("selected asset: %s (%d bytes)", asset.GetName(), asset.GetSize())
 
 	data, err := download(ctx, client, owner, repo, asset)
+
 	if err != nil {
 		return fmt.Errorf("download asset %q: %w", asset.GetName(), err)
 	}
+
 	log.Printf("downloaded %d bytes", len(data))
 
 	// Verify checksum only for the tar.xz asset; the SHA tracks the archive, not the extracted binary.
-	if isXZ(data) {
-		if err := verifySHA(data, typstmeta.SHA256); err != nil {
-			return err
-		}
-		log.Printf("sha256 verified for tar.xz")
-	} else {
-		log.Printf("skipping sha256 verification: downloaded asset is not .xz")
-	}
+	err = verifySHA(data, typstmeta.SHA256(*asset.Name))
 
-	bin, err := extractTypstBinary(data)
 	if err != nil {
 		return err
 	}
+
+	log.Printf("sha256 verified")
+
+	bin, err := extractTypstBinary(data)
+
+	if err != nil {
+		return err
+	}
+
 	if len(bin) == 0 {
 		return errors.New("extracted typst binary is empty")
 	}
 
-	outPath := filepath.FromSlash("internal/embedded/typst/typst")
+	outPath := filepath.FromSlash(filepath.Join("typst", runtime.GOOS, runtime.GOARCH, "typst"))
+
 	if err := atomicWrite(outPath, bin, 0644); err != nil {
 		return fmt.Errorf("write %s: %w", outPath, err)
 	}
+
 	log.Printf("wrote %d bytes to %s", len(bin), outPath)
+
 	return nil
 }
 
@@ -97,27 +108,36 @@ func newGHClient(ctx context.Context) *github.Client {
 }
 
 func pickAsset(assets []*github.ReleaseAsset) (*github.ReleaseAsset, error) {
-	// Prefer Linux x86_64 musl tar.xz as per project README and defaults.
-	const preferred = "x86_64-unknown-linux-musl.tar.xz"
+	var preferred string
 
-	var candidate *github.ReleaseAsset
+	switch runtime.GOOS {
+	case "darwin":
+		switch runtime.GOARCH {
+		case "arm64":
+			preferred = "typst-aarch64-apple-darwin.tar.xz"
+		case "amd64":
+			preferred = "typst-x86_64-apple-darwin.tar.xz"
+		default:
+			return nil, fmt.Errorf("unsupported {GOOS, GOARCH} combination: {%s, %s}", runtime.GOOS, runtime.GOARCH)
+		}
+	case "linux":
+		switch runtime.GOARCH {
+		case "arm64":
+			preferred = " typst-aarch64-unknown-linux-musl.tar.xz "
+		case "amd64":
+			preferred = "typst-x86_64-unknown-linux-musl.tar.xz"
+		default:
+			return nil, fmt.Errorf("unsupported {GOOS, GOARCH} combination: {%s, %s}", runtime.GOOS, runtime.GOARCH)
+		}
+	}
+
 	for _, a := range assets {
-		name := a.GetName()
-		if strings.Contains(name, preferred) {
+		if a.GetName() == preferred {
 			return a, nil
 		}
-		// Reasonable fallbacks: any linux x86_64 tar.xz, or a plain binary named typst.
-		if candidate == nil && strings.HasSuffix(name, ".tar.xz") && strings.Contains(name, "linux") && strings.Contains(name, "x86_64") {
-			candidate = a
-		}
-		if candidate == nil && (strings.EqualFold(name, "typst") || strings.HasSuffix(name, "typst-linux-x86_64")) {
-			candidate = a
-		}
 	}
-	if candidate != nil {
-		return candidate, nil
-	}
-	return nil, fmt.Errorf("no suitable release asset found; available: %s", assetNames(assets))
+
+	return nil, errors.New("no suitable release asset found")
 }
 
 func assetNames(assets []*github.ReleaseAsset) string {
@@ -175,26 +195,28 @@ func verifySHA(data []byte, expect string) error {
 }
 
 func extractTypstBinary(data []byte) ([]byte, error) {
-	if !isXZ(data) {
-		// Assume the asset is the raw binary.
-		return data, nil
-	}
 	xr, err := xz.NewReader(bytes.NewReader(data))
+
 	if err != nil {
 		return nil, fmt.Errorf("xz reader: %w", err)
 	}
+
 	tr := tar.NewReader(xr)
+
 	for {
 		hdr, err := tr.Next()
 		if err == io.EOF {
 			break
 		}
+
 		if err != nil {
 			return nil, fmt.Errorf("tar read: %w", err)
 		}
+
 		if hdr.Typeflag != tar.TypeReg {
 			continue
 		}
+
 		// Look for the binary named "typst" (may be inside a directory).
 		if filepath.Base(hdr.Name) == "typst" {
 			b, err := io.ReadAll(tr)
@@ -205,14 +227,6 @@ func extractTypstBinary(data []byte) ([]byte, error) {
 		}
 	}
 	return nil, errors.New("typst binary not found in archive")
-}
-
-func isXZ(b []byte) bool {
-	if len(b) < 6 {
-		return false
-	}
-	// xz magic: FD 37 7A 58 5A 00
-	return b[0] == 0xFD && b[1] == 0x37 && b[2] == 0x7A && b[3] == 0x58 && b[4] == 0x5A && b[5] == 0x00
 }
 
 func atomicWrite(path string, data []byte, mode os.FileMode) error {

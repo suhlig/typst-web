@@ -1,6 +1,9 @@
 package main
 
 import (
+	"bytes"
+	_ "embed"
+	"fmt"
 	"io"
 	"net/http"
 	"os"
@@ -11,7 +14,7 @@ import (
 //go:embed index.html
 var indexHTML string
 
-//go:embed ../../internal/embedded/typst/typst
+//go:embed embedded/typst/typst
 var typstBin []byte
 
 func extractTypst() (string, error) {
@@ -38,27 +41,52 @@ func main() {
 			return
 		}
 
-		body, _ := io.ReadAll(r.Body)
-		typstPath, err := extractTypst()
+		body, err := io.ReadAll(r.Body)
+
 		if err != nil {
-			http.Error(w, err.Error(), 500)
+			http.Error(w, fmt.Sprintf("could not read body: %s", err.Error()), 500)
 			return
 		}
 
-		cmd := exec.Command(typstPath, "-", "out.pdf")
-		stdin, _ := cmd.StdinPipe()
+		typstPath, err := extractTypst()
+
+		if err != nil {
+			http.Error(w, fmt.Sprintf("unable to extract typst: %s", err.Error()), 500)
+			return
+		}
+
+		cmd := exec.Command(typstPath, "compile", "-", "out.pdf")
+
+		stdin, err := cmd.StdinPipe()
+
+		if err != nil {
+			http.Error(w, fmt.Sprintf("unable to get stdin pipe: %s", err.Error()), 500)
+			return
+		}
+
+		var stderr bytes.Buffer
+		cmd.Stderr = &stderr
 
 		go func() {
 			stdin.Write(body)
 			stdin.Close()
 		}()
 
-		if err := cmd.Run(); err != nil {
-			http.Error(w, err.Error(), 500)
+		err = cmd.Run()
+
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "failed to run command: %s", stderr.String())
+			http.Error(w, "failed to run command", 500)
 			return
 		}
 
-		pdf, _ := os.ReadFile("out.pdf")
+		pdf, err := os.ReadFile("out.pdf")
+
+		if err != nil {
+			http.Error(w, fmt.Sprintf("unable to read result PDF: %s", err.Error()), 500)
+			return
+		}
+
 		w.Header().Set("Content-Type", "application/pdf")
 		w.Write(pdf)
 	})
