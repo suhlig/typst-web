@@ -1,6 +1,6 @@
- //go:build !(darwin || linux) || !(amd64 || arm64)
+//go:build !(darwin || linux) || !(amd64 || arm64)
 
-package main
+package embedded
 
 var typstBin []byte
 
