@@ -18,18 +18,17 @@ func main() {
 }
 
 func mainE(ctx context.Context) error {
-	const typstVersion = "0.14.2"
-	fetcher := typst.NewFetcher()
+	fetcher := typst.NewFetcher("0.14.2")
 
 	// TODO in parallel
-	for _, platform := range typst.SupportedPlatforms() {
-		bin, err := fetcher.Fetch(ctx, typstVersion, platform.OS, platform.Arch)
+	for _, platform := range typst.Platforms() {
+		bin, err := fetcher.Fetch(ctx, platform)
 
 		if err != nil {
 			return err
 		}
 
-		path := filepath.FromSlash(filepath.Join("kodata", "typst", typstVersion, platform.OS, platform.Arch, "typst"))
+		path := filepath.FromSlash(filepath.Join("kodata", "typst", platform.OS, platform.Arch, "typst"))
 
 		err = os.MkdirAll(filepath.Dir(path), 0755)
 

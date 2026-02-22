@@ -19,22 +19,24 @@ import (
 )
 
 type Fetcher struct {
+	version  string
 	ghClient *github.Client
 }
 
-func NewFetcher() *Fetcher {
+func NewFetcher(version string) *Fetcher {
 	client := github.NewClient(nil)
 
 	return &Fetcher{
+		version:  version,
 		ghClient: client,
 	}
 }
 
-func (f Fetcher) Fetch(ctx context.Context, version, os, arch string) ([]byte, error) {
+func (f Fetcher) Fetch(ctx context.Context, platform Platform) ([]byte, error) {
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Minute)
 	defer cancel()
 
-	tag := "v" + version
+	tag := "v" + f.version
 
 	rel, _, err := f.ghClient.Repositories.GetReleaseByTag(ctx, "typst", "typst", tag)
 
@@ -42,7 +44,7 @@ func (f Fetcher) Fetch(ctx context.Context, version, os, arch string) ([]byte, e
 		return nil, fmt.Errorf("getting the release by tag %q: %w", tag, err)
 	}
 
-	asset, err := pickAsset(rel.Assets, version, os, arch)
+	asset, err := f.pickAsset(rel.Assets, platform)
 
 	if err != nil {
 		return nil, err
@@ -54,7 +56,7 @@ func (f Fetcher) Fetch(ctx context.Context, version, os, arch string) ([]byte, e
 		return nil, fmt.Errorf("downloading asset %q: %w", asset.GetName(), err)
 	}
 
-	sha, err := assetSHA(version, *asset.Name)
+	sha, err := assetSHA(f.version, *asset.Name)
 
 	if err != nil {
 		return nil, err
@@ -69,8 +71,8 @@ func (f Fetcher) Fetch(ctx context.Context, version, os, arch string) ([]byte, e
 	return extractTypstBinary(data)
 }
 
-func pickAsset(assets []*github.ReleaseAsset, version, os, arch string) (*github.ReleaseAsset, error) {
-	assetName, err := assetName(version, os, arch)
+func (f Fetcher) pickAsset(assets []*github.ReleaseAsset, platform Platform) (*github.ReleaseAsset, error) {
+	assetName, err := assetName(f.version, platform.OS, platform.Arch)
 
 	if err != nil {
 		return nil, err
@@ -82,7 +84,7 @@ func pickAsset(assets []*github.ReleaseAsset, version, os, arch string) (*github
 		}
 	}
 
-	return nil, fmt.Errorf("no asset found for {%s, %s}", os, arch)
+	return nil, fmt.Errorf("no asset found for %s", platform)
 }
 
 func (f Fetcher) download(ctx context.Context, url string) ([]byte, error) {

@@ -17,7 +17,7 @@ import (
 var indexHTML string
 
 func main() {
-	typstPath := filepath.Join(os.Getenv("KO_DATA_PATH"), "typst", "0.14.2", runtime.GOOS, runtime.GOARCH, "typst")
+	typstPath := filepath.Join(os.Getenv("KO_DATA_PATH"), "typst", runtime.GOOS, runtime.GOARCH, "typst")
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodGet {
