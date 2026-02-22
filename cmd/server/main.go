@@ -18,6 +18,8 @@ import (
 var indexHTML string
 
 func main() {
+	typstPath := filepath.Join(os.Getenv("KO_DATA_PATH"), "typst", "0.14.2", runtime.GOOS, runtime.GOARCH, "typst")
+
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodGet {
 			w.Write([]byte(indexHTML))
@@ -31,9 +33,9 @@ func main() {
 			return
 		}
 
-		typstPath := filepath.Join(os.Getenv("KO_DATA_PATH"), "typst", "0.14.2", runtime.GOOS, runtime.GOARCH, "typst")
+		pdfPath, err := os.CreateTemp("", "out.pdf")
 
-		cmd := exec.Command(typstPath, "compile", "-", "out.pdf")
+		cmd := exec.Command(typstPath, "compile", "-", "--format", "pdf", pdfPath.Name())
 
 		stdin, err := cmd.StdinPipe()
 
@@ -61,7 +63,7 @@ func main() {
 			return
 		}
 
-		pdf, err := os.ReadFile("out.pdf")
+		pdf, err := os.ReadFile(pdfPath.Name())
 
 		if err != nil {
 			http.Error(w, fmt.Sprintf("unable to read result PDF: %s", err.Error()), 500)

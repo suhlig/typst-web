@@ -45,3 +45,21 @@ func assetName(version, os, arch string) (string, error) {
 
 	return "", fmt.Errorf("unsupported {version, GOOS, GOARCH} combination: {%s, %s, %s}", version, os, arch)
 }
+
+// TODO Replace os, arch with Platform
+type Platform struct {
+	OS   string
+	Arch string
+}
+
+func SupportedPlatforms() []Platform {
+	var result []Platform
+
+	for _, os := range []string{"darwin", "linux"} {
+		for _, arch := range []string{"arm64", "amd64"} {
+			result = append(result, Platform{OS: os, Arch: arch})
+		}
+	}
+
+	return result
+}

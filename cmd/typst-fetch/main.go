@@ -21,7 +21,7 @@ func mainE(ctx context.Context) error {
 	const typstVersion = "0.14.2"
 	fetcher := typst.NewFetcher()
 
-	for _, platform := range supportedPlatforms() {
+	for _, platform := range typst.SupportedPlatforms() {
 		bin, err := fetcher.Fetch(ctx, typstVersion, platform.OS, platform.Arch)
 
 		if err != nil {
@@ -44,21 +44,4 @@ func mainE(ctx context.Context) error {
 	}
 
 	return nil
-}
-
-type Platform struct {
-	OS   string
-	Arch string
-}
-
-func supportedPlatforms() []Platform {
-	var result []Platform
-
-	for _, os := range []string{"darwin", "linux"} {
-		for _, arch := range []string{"arm64", "amd64"} {
-			result = append(result, Platform{OS: os, Arch: arch})
-		}
-	}
-
-	return result
 }
