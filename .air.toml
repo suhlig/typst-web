@@ -1,5 +1,5 @@
 [build]
-  bin = "./bin/spike-typst-embed-web"
+  entrypoint = "./bin/spike-typst-embed-web"
   cmd = "go build -o bin/spike-typst-embed-web cmd/server/main.go"
   exclude_dir = ["tmp", "vendor", "dist"]
   include_ext = ["go", "tpl", "tmpl", "html", "typ", "json"]
