@@ -5,8 +5,9 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"golang.org/x/sync/errgroup"
 	"typstweb/typst"
+
+	"golang.org/x/sync/errgroup"
 )
 
 func main() {
@@ -22,19 +23,14 @@ const typstVersion = "0.14.2"
 
 func mainE(ctx context.Context) error {
 	fetcher := typst.NewFetcher(typstVersion)
-
-	platforms := typst.Platforms(typstVersion)
-	if len(platforms) == 0 {
-		return nil
-	}
-
 	g, ctx := errgroup.WithContext(ctx)
-	// g.SetLimit(4) // optional: cap concurrency
 
-	for _, platform := range platforms {
+	for _, platform := range typst.Platforms(typstVersion) {
 		p := platform // capture
+
 		g.Go(func() error {
 			bin, err := fetcher.Fetch(ctx, p)
+
 			if err != nil {
 				return err
 			}
@@ -48,6 +44,7 @@ func mainE(ctx context.Context) error {
 			if err := os.WriteFile(path, bin, 0755); err != nil {
 				return fmt.Errorf("writing %s: %w", path, err)
 			}
+
 			return nil
 		})
 	}
