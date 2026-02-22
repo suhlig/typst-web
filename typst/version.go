@@ -1,7 +1,7 @@
 package typst
 
 var versions = map[string][]assetInfo{
-	"0.14.2": {
+	"0.14.2": { // https://github.com/typst/typst/releases/tag/v0.14.2
 		{
 			Platform: Platform{OS: "darwin", Arch: "arm64"},
 			Name:     "typst-aarch64-apple-darwin.tar.xz",
