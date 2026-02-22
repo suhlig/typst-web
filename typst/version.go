@@ -1,26 +1,5 @@
 package typst
 
-import (
-	"fmt"
-)
-
-type Platform struct {
-	OS   string
-	Arch string
-}
-
-func (p Platform) String() string {
-	return fmt.Sprintf("{%s, %s}", p.OS, p.Arch)
-}
-
-// assetInfo is the single source of truth for each asset: name, sha, and platform.
-type assetInfo struct {
-	Platform Platform
-	Name     string
-	SHA      string
-}
-
-// versions holds all versioned assets. Treat this as read-only.
 var versions = map[string][]assetInfo{
 	"0.14.2": {
 		{
@@ -44,59 +23,4 @@ var versions = map[string][]assetInfo{
 			SHA:      "sha256:491b101aa40a3a7ea82a3f8a6232cabb4e6a7e233810082e5ac812d43fdcd47a",
 		},
 	},
-}
-
-func assetSHA(version, name string) (string, error) {
-	assets, ok := versions[version]
-
-	if !ok {
-		return "", fmt.Errorf("no known version %s", version)
-	}
-
-	for _, a := range assets {
-		if a.Name == name {
-			return a.SHA, nil
-		}
-	}
-
-	return "", fmt.Errorf("no known SHA for %s %s", version, name)
-}
-
-func assetName(version, os, arch string) (string, error) {
-	assets, ok := versions[version]
-
-	if !ok {
-		return "", fmt.Errorf("unsupported {version, GOOS, GOARCH} combination: {%s, %s, %s}", version, os, arch)
-	}
-
-	for _, a := range assets {
-		if a.Platform.OS == os && a.Platform.Arch == arch {
-			return a.Name, nil
-		}
-	}
-
-	return "", fmt.Errorf("unsupported {version, GOOS, GOARCH} combination: {%s, %s, %s}", version, os, arch)
-}
-
-func Platforms(version string) []Platform {
-	assets, ok := versions[version]
-
-	if !ok {
-		return nil
-	}
-
-	seen := make(map[string]bool)
-
-	var out []Platform
-
-	for _, a := range assets {
-		key := a.Platform.OS + "/" + a.Platform.Arch
-
-		if !seen[key] {
-			out = append(out, a.Platform)
-			seen[key] = true
-		}
-	}
-
-	return out
 }

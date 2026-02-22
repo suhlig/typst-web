@@ -50,13 +50,13 @@ func (f Fetcher) Fetch(ctx context.Context, platform Platform) ([]byte, error) {
 		return nil, err
 	}
 
-	data, err := f.download(ctx, asset.GetBrowserDownloadURL())
+	data, err := f.downloadAsset(ctx, asset.GetBrowserDownloadURL())
 
 	if err != nil {
 		return nil, fmt.Errorf("downloading asset %q: %w", asset.GetName(), err)
 	}
 
-	sha, err := assetSHA(f.version, *asset.Name)
+	sha, err := f.assetSHA(*asset.Name)
 
 	if err != nil {
 		return nil, err
@@ -72,7 +72,7 @@ func (f Fetcher) Fetch(ctx context.Context, platform Platform) ([]byte, error) {
 }
 
 func (f Fetcher) pickAsset(assets []*github.ReleaseAsset, platform Platform) (*github.ReleaseAsset, error) {
-	assetName, err := assetName(f.version, platform.OS, platform.Arch)
+	assetName, err := f.assetName(platform)
 
 	if err != nil {
 		return nil, err
@@ -87,7 +87,7 @@ func (f Fetcher) pickAsset(assets []*github.ReleaseAsset, platform Platform) (*g
 	return nil, fmt.Errorf("no asset found for %s", platform)
 }
 
-func (f Fetcher) download(ctx context.Context, url string) ([]byte, error) {
+func (f Fetcher) downloadAsset(ctx context.Context, url string) ([]byte, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 
 	if err != nil {
@@ -160,4 +160,36 @@ func extractTypstBinary(data []byte) ([]byte, error) {
 	}
 
 	return nil, errors.New("typst binary not found in archive")
+}
+
+func (f Fetcher) assetSHA(name string) (string, error) {
+	assets, ok := versions[f.version]
+
+	if !ok {
+		return "", fmt.Errorf("no known version %s", f.version)
+	}
+
+	for _, a := range assets {
+		if a.Name == name {
+			return a.SHA, nil
+		}
+	}
+
+	return "", fmt.Errorf("no known SHA for %s %s", f.version, name)
+}
+
+func (f Fetcher) assetName(p Platform) (string, error) {
+	assets, ok := versions[f.version]
+
+	if !ok {
+		return "", fmt.Errorf("unsupported {version, GOOS, GOARCH} combination: {%s, %s, %s}", f.version, p.OS, p.Arch)
+	}
+
+	for _, asset := range assets {
+		if asset.Platform.OS == p.OS && asset.Platform.Arch == p.Arch {
+			return asset.Name, nil
+		}
+	}
+
+	return "", fmt.Errorf("unsupported {version, GOOS, GOARCH} combination: {%s, %s, %s}", f.version, p.OS, p.Arch)
 }
