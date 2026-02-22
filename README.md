@@ -8,23 +8,10 @@ Fetch the typst binaries:
 go generate ./cmd/server
 ```
 
-Build for all supported platforms:
+# Run
 
 ```command
-for os in darwin linux; do                                                         [2026-02-21 19:42:42]
-  for arch in arm64 amd64; do
-    GOOS=$os GOARCH=$arch go build -o spike-typst-embed-web-$os-$arch ./cmd/server
-  done
-done
-```
-
-or
-
-```command
-$ for pair in darwin-arm64 darwin-amd64 linux-arm64 linux-amd64; do
-  IFS=- read -r os arch <<<"$pair"
-  GOOS=$os GOARCH=$arch go build -o spike-typst-embed-web-$os-$arch ./cmd/server
-done
+docker run -p 8080:8080 $(ko build --local --platform=linux/arm64 ./cmd/server)
 ```
 
 # Overview
@@ -148,17 +135,3 @@ This collapses GC, integrity checks, and versioning into one rule:
 - Abuses module system
 - Poor long-term scaling
 - Obscures provenance
-
-# Build
-
-1. Implement `cmd/typst-fetch` (download + verify Typst)
-2. Set the correct version and SHA256
-3. Run:
-   ```
-   go generate ./...
-   ```
-4. Build:
-   ```
-   GOOS=linux GOARCH=amd64 go build ./cmd/server
-   ```
-5. Run the server and open `http://localhost:8080`

@@ -54,7 +54,7 @@ func main() {
 		err = cmd.Run()
 
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "failed to run command %v\n", cmd)
+			fmt.Fprintf(os.Stderr, "failed to run command %v: %s\n", cmd, err)
 			fmt.Fprintf(os.Stderr, "STDOUT:\n%s\n", stdout.String())
 			fmt.Fprintf(os.Stderr, "STDERR:\n%s\n", stderr.String())
 			http.Error(w, "failed to run command", 500)
