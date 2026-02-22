@@ -5,13 +5,15 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"strings"
 )
 
-type Typst struct {
-	binPath string
+type Compiler struct {
+	binPath   string
+	fontPaths []string
 }
 
-func (t Typst) Help() (string, error) {
+func (t Compiler) Help() (string, error) {
 	cmd := exec.Command(t.binPath, "help")
 
 	var stdout bytes.Buffer
@@ -26,8 +28,8 @@ func (t Typst) Help() (string, error) {
 	return stdout.String(), nil
 }
 
-func NewTypst(binPath string) (*Typst, error) {
-	t := Typst{binPath: binPath}
+func NewCompiler(binPath string) (*Compiler, error) {
+	t := Compiler{binPath: binPath}
 
 	_, err := t.Help()
 
@@ -38,10 +40,35 @@ func NewTypst(binPath string) (*Typst, error) {
 	return &t, nil
 }
 
-func (t Typst) Compile(input string) ([]byte, error) {
+// TODO TYPST_ROOT
+// TODO TYPST_IGNORE_SYSTEM_FONTS
+// TODO TYPST_IGNORE_EMBEDDED_FONTS
+// TODO TYPST_PACKAGE_PATH
+// TODO TYPST_PACKAGE_CACHE_PATH
+// TODO SOURCE_DATE_EPOCH
+// TODO TYPST_FEATURES
+
+func (c *Compiler) WithFontPath(p string) *Compiler {
+	c.fontPaths = append(c.fontPaths, p)
+	return c
+}
+
+func (t Compiler) Compile(input string) ([]byte, error) {
 	pdfPath, err := os.CreateTemp("", "out.pdf")
 
-	cmd := exec.Command(t.binPath, "compile", "-", "--format", "pdf", pdfPath.Name())
+	cmd := exec.Command(
+		t.binPath,
+		"compile",
+		"-",
+		"--ignore-system-fonts",
+		"--ignore-embedded-fonts",
+		"--format", "pdf",
+		pdfPath.Name(),
+	)
+
+	if len(t.fontPaths) > 0 {
+		cmd.Args = append(cmd.Args, "--font-path", strings.Join(t.fontPaths, ":"))
+	}
 
 	stdin, err := cmd.StdinPipe()
 
@@ -60,9 +87,10 @@ func (t Typst) Compile(input string) ([]byte, error) {
 
 	err = cmd.Run()
 
+	fmt.Fprintf(os.Stderr, "STDOUT:\n%s\n", stdout.String())
+	fmt.Fprintf(os.Stderr, "STDERR:\n%s\n", stderr.String())
+
 	if err != nil {
-		// fmt.Fprintf(os.Stderr, "STDOUT:\n%s\n", stdout.String())
-		// fmt.Fprintf(os.Stderr, "STDERR:\n%s\n", stderr.String())
 		return nil, fmt.Errorf("failed to run command %s: %w", cmd, err)
 	}
 

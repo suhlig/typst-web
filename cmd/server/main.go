@@ -26,11 +26,13 @@ func main() {
 
 func mainE() error {
 	typstPath := filepath.Join(os.Getenv("KO_DATA_PATH"), "typst", runtime.GOOS, runtime.GOARCH, "typst")
-	typst, err := typst.NewTypst(typstPath)
+	typst, err := typst.NewCompiler(typstPath)
 
 	if err != nil {
 		return err
 	}
+
+	typst.WithFontPath(filepath.Join(os.Getenv("KO_DATA_PATH"), "fonts"))
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodGet {
