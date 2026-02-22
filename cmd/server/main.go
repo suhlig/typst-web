@@ -4,7 +4,6 @@ import (
 	"bytes"
 	_ "embed"
 	"fmt"
-	"io"
 	"net/http"
 	"os"
 	"os/exec"
@@ -26,12 +25,14 @@ func main() {
 			return
 		}
 
-		body, err := io.ReadAll(r.Body)
+		err := r.ParseForm()
 
 		if err != nil {
-			http.Error(w, fmt.Sprintf("could not read body: %s", err.Error()), 500)
+			http.Error(w, fmt.Sprintf("could not parse form: %s", err.Error()), 500)
 			return
 		}
+
+		body := r.FormValue("source")
 
 		pdfPath, err := os.CreateTemp("", "out.pdf")
 
@@ -49,7 +50,7 @@ func main() {
 		cmd.Stderr = &stderr
 
 		go func() {
-			stdin.Write(body)
+			stdin.Write([]byte(body))
 			stdin.Close()
 		}()
 

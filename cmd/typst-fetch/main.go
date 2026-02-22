@@ -21,6 +21,7 @@ func mainE(ctx context.Context) error {
 	const typstVersion = "0.14.2"
 	fetcher := typst.NewFetcher()
 
+	// TODO in parallel
 	for _, platform := range typst.SupportedPlatforms() {
 		bin, err := fetcher.Fetch(ctx, typstVersion, platform.OS, platform.Arch)
 
