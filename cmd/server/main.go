@@ -9,44 +9,13 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 )
 
 //go:generate go run ../typst-fetch
 
 //go:embed index.html
 var indexHTML string
-
-func extractTypst() (string, error) {
-	cache, err := os.UserCacheDir()
-
-	if err != nil {
-		return "", err
-	}
-
-	dir := filepath.Join(cache, "typstweb")
-	err = os.MkdirAll(dir, 0755)
-
-	if err != nil {
-		return "", err
-	}
-
-	path := filepath.Join(dir, "typst")
-	tmp := path + ".tmp"
-
-	err = os.WriteFile(tmp, typstBin, 0755)
-
-	if err != nil {
-		return "", err
-	}
-
-	err = os.Rename(tmp, path)
-
-	if err != nil {
-		return "", err
-	}
-
-	return path, nil
-}
 
 func main() {
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
@@ -62,12 +31,7 @@ func main() {
 			return
 		}
 
-		typstPath, err := extractTypst()
-
-		if err != nil {
-			http.Error(w, fmt.Sprintf("unable to extract typst: %s", err.Error()), 500)
-			return
-		}
+		typstPath := filepath.Join(os.Getenv("KO_DATA_PATH"), "typst", "0.14.2", runtime.GOOS, runtime.GOARCH, "typst")
 
 		cmd := exec.Command(typstPath, "compile", "-", "out.pdf")
 
@@ -78,7 +42,8 @@ func main() {
 			return
 		}
 
-		var stderr bytes.Buffer
+		var stdout, stderr bytes.Buffer
+		cmd.Stdout = &stdout
 		cmd.Stderr = &stderr
 
 		go func() {
@@ -89,7 +54,9 @@ func main() {
 		err = cmd.Run()
 
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "failed to run command: %s", stderr.String())
+			fmt.Fprintf(os.Stderr, "failed to run command %v\n", cmd)
+			fmt.Fprintf(os.Stderr, "STDOUT:\n%s\n", stdout.String())
+			fmt.Fprintf(os.Stderr, "STDERR:\n%s\n", stderr.String())
 			http.Error(w, "failed to run command", 500)
 			return
 		}
