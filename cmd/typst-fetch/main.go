@@ -26,16 +26,14 @@ func mainE(ctx context.Context) error {
 	g, ctx := errgroup.WithContext(ctx)
 
 	for _, platform := range typst.Platforms(typstVersion) {
-		p := platform // capture
-
 		g.Go(func() error {
-			bin, err := fetcher.Fetch(ctx, p)
+			bin, err := fetcher.Fetch(ctx, platform)
 
 			if err != nil {
 				return err
 			}
 
-			path := filepath.FromSlash(filepath.Join("kodata", "typst", p.OS, p.Arch, "typst"))
+			path := filepath.FromSlash(filepath.Join("kodata", "typst", platform.OS, platform.Arch, "typst"))
 
 			if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
 				return err
