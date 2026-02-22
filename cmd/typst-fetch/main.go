@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"sync"
+	"golang.org/x/sync/errgroup"
 	"typstweb/typst"
 )
 
@@ -28,56 +28,29 @@ func mainE(ctx context.Context) error {
 		return nil
 	}
 
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
-
-	var wg sync.WaitGroup
-	errCh := make(chan error, 1)
+	g, ctx := errgroup.WithContext(ctx)
+	// g.SetLimit(4) // optional: cap concurrency
 
 	for _, platform := range platforms {
-		platform := platform // capture loop var
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-
-			bin, err := fetcher.Fetch(ctx, platform)
+		p := platform // capture
+		g.Go(func() error {
+			bin, err := fetcher.Fetch(ctx, p)
 			if err != nil {
-				select {
-				case errCh <- err:
-					cancel()
-				default:
-				}
-				return
+				return err
 			}
 
-			path := filepath.FromSlash(filepath.Join("kodata", "typst", platform.OS, platform.Arch, "typst"))
+			path := filepath.FromSlash(filepath.Join("kodata", "typst", p.OS, p.Arch, "typst"))
 
 			if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
-				select {
-				case errCh <- err:
-					cancel()
-				default:
-				}
-				return
+				return err
 			}
 
 			if err := os.WriteFile(path, bin, 0755); err != nil {
-				select {
-				case errCh <- fmt.Errorf("writing %s: %w", path, err):
-					cancel()
-				default:
-				}
-				return
+				return fmt.Errorf("writing %s: %w", path, err)
 			}
-		}()
+			return nil
+		})
 	}
 
-	wg.Wait()
-
-	select {
-	case err := <-errCh:
-		return err
-	default:
-		return nil
-	}
+	return g.Wait()
 }
