@@ -17,11 +17,13 @@ func main() {
 	}
 }
 
+const typstVersion = "0.14.2"
+
 func mainE(ctx context.Context) error {
-	fetcher := typst.NewFetcher("0.14.2")
+	fetcher := typst.NewFetcher(typstVersion)
 
 	// TODO in parallel
-	for _, platform := range typst.Platforms() {
+	for _, platform := range typst.Platforms(typstVersion) {
 		bin, err := fetcher.Fetch(ctx, platform)
 
 		if err != nil {
