@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sync"
 	"typstweb/typst"
 )
 
@@ -22,28 +23,61 @@ const typstVersion = "0.14.2"
 func mainE(ctx context.Context) error {
 	fetcher := typst.NewFetcher(typstVersion)
 
-	// TODO in parallel
-	for _, platform := range typst.Platforms(typstVersion) {
-		bin, err := fetcher.Fetch(ctx, platform)
-
-		if err != nil {
-			return err
-		}
-
-		path := filepath.FromSlash(filepath.Join("kodata", "typst", platform.OS, platform.Arch, "typst"))
-
-		err = os.MkdirAll(filepath.Dir(path), 0755)
-
-		if err != nil {
-			return err
-		}
-
-		err = os.WriteFile(path, bin, 0755)
-
-		if err != nil {
-			return fmt.Errorf("writing %s: %w", path, err)
-		}
+	platforms := typst.Platforms(typstVersion)
+	if len(platforms) == 0 {
+		return nil
 	}
 
-	return nil
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	var wg sync.WaitGroup
+	errCh := make(chan error, 1)
+
+	for _, platform := range platforms {
+		platform := platform // capture loop var
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+
+			bin, err := fetcher.Fetch(ctx, platform)
+			if err != nil {
+				select {
+				case errCh <- err:
+					cancel()
+				default:
+				}
+				return
+			}
+
+			path := filepath.FromSlash(filepath.Join("kodata", "typst", platform.OS, platform.Arch, "typst"))
+
+			if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
+				select {
+				case errCh <- err:
+					cancel()
+				default:
+				}
+				return
+			}
+
+			if err := os.WriteFile(path, bin, 0755); err != nil {
+				select {
+				case errCh <- fmt.Errorf("writing %s: %w", path, err):
+					cancel()
+				default:
+				}
+				return
+			}
+		}()
+	}
+
+	wg.Wait()
+
+	select {
+	case err := <-errCh:
+		return err
+	default:
+		return nil
+	}
 }
