@@ -2,6 +2,9 @@ package typst
 
 import (
 	"fmt"
+	"sort"
+	"strconv"
+	"strings"
 )
 
 type Platform struct {
@@ -85,11 +88,63 @@ func assetName(version, os, arch string) (string, error) {
 }
 
 func Platforms() []Platform {
-	var result []Platform
-	for _, os := range []string{"darwin", "linux"} {
-		for _, arch := range []string{"arm64", "amd64"} {
-			result = append(result, Platform{OS: os, Arch: arch})
+	return platformsForVersion(latestVersion())
+}
+
+func platformsForVersion(version string) []Platform {
+	assets, ok := versions[version]
+	if !ok {
+		return nil
+	}
+	seen := make(map[string]bool)
+	var out []Platform
+	for _, a := range assets {
+		key := a.Platform.OS + "/" + a.Platform.Arch
+		if !seen[key] {
+			out = append(out, a.Platform)
+			seen[key] = true
 		}
 	}
-	return result
+	return out
+}
+
+func latestVersion() string {
+	if len(versions) == 0 {
+		return ""
+	}
+	keys := make([]string, 0, len(versions))
+	for k := range versions {
+		keys = append(keys, k)
+	}
+	sort.Slice(keys, func(i, j int) bool {
+		mi, ni, pi := semverParts(keys[i])
+		mj, nj, pj := semverParts(keys[j])
+		if mi != mj {
+			return mi < mj
+		}
+		if ni != nj {
+			return ni < nj
+		}
+		return pi < pj
+	})
+	return keys[len(keys)-1]
+}
+
+func semverParts(s string) (int, int, int) {
+	parts := strings.SplitN(s, ".", 3)
+	var m, n, p int
+	if len(parts) > 0 {
+		m, _ = strconv.Atoi(parts[0])
+	}
+	if len(parts) > 1 {
+		n, _ = strconv.Atoi(parts[1])
+	}
+	if len(parts) > 2 {
+		ps := parts[2]
+		if idx := strings.IndexAny(ps, "-+"); idx >= 0 {
+			ps = ps[:idx]
+		}
+		p, _ = strconv.Atoi(ps)
+	}
+	return m, n, p
 }
