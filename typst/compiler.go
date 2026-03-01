@@ -76,6 +76,8 @@ func (t Compiler) Compile(input string) ([]byte, error) {
 		return nil, fmt.Errorf("unable to get stdin pipe: %s", err.Error())
 	}
 
+	// TODO Accept readers or channels where stdout and stderr can be piped to
+	// so that clients get to present errors and warnings
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
