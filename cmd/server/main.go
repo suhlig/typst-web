@@ -27,8 +27,9 @@ func main() {
 }
 
 func mainE() error {
-	typstPath := filepath.Join(os.Getenv("KO_DATA_PATH"), "typst", runtime.GOOS, runtime.GOARCH, "typst")
-	typst, err := typst.NewCompiler(typstPath)
+	kodata := os.Getenv("KO_DATA_PATH")
+
+	typst, err := typst.NewCompiler(filepath.Join(kodata, "typst", runtime.GOOS, runtime.GOARCH, "typst"))
 
 	if err != nil {
 		return err

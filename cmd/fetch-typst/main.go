@@ -24,6 +24,7 @@ const typstVersion = "0.14.2"
 
 func mainE(ctx context.Context) error {
 	fetcher := typst.NewFetcher(typstVersion)
+
 	g, ctx := errgroup.WithContext(ctx)
 
 	for _, platform := range typst.Platforms(typstVersion) {
