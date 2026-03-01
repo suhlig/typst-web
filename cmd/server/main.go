@@ -34,18 +34,7 @@ func mainE() error {
 		return err
 	}
 
-	typst = typst.WithFontPath(filepath.Join(os.Getenv("KO_DATA_PATH"), "fonts"))
-
-	// Add subdirectories of fonts to font path as well
-	fontEntries, err := os.ReadDir(filepath.Join(os.Getenv("KO_DATA_PATH"), "fonts"))
-
-	if err == nil {
-		for _, entry := range fontEntries {
-			if entry.IsDir() {
-				typst = typst.WithFontPath(filepath.Join(os.Getenv("KO_DATA_PATH"), "fonts", entry.Name()))
-			}
-		}
-	}
+	typst = typst.WithFontPath(filepath.Join(kodata, "fonts"))
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodGet {

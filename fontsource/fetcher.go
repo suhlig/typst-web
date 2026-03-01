@@ -4,9 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"net/url"
+	"path/filepath"
+	"strings"
 )
 
 type fontMetadata struct {
@@ -69,6 +70,7 @@ func GetDownloadTasks(ctx context.Context, family string) ([]DownloadTask, error
 				}
 
 				filename := fmt.Sprintf("%s-%s-%s.ttf", weight, style, subsetName)
+
 				tasks = append(tasks, DownloadTask{
 					URL:  subset.URL.TTF,
 					Path: filepath.Join("kodata", "fonts", familyDir, filename),
@@ -113,4 +115,3 @@ func findFontID(ctx context.Context, family string) (string, error) {
 
 	return results[0].ID, nil
 }
-

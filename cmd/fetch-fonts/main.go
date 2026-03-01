@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"strings"
 	"typstweb/fontsource"
 
 	"golang.org/x/sync/errgroup"
@@ -37,13 +36,11 @@ func mainE(ctx context.Context, args ...string) error {
 	}
 
 	g, ctx := errgroup.WithContext(ctx)
-	// Limit concurrency to avoid hitting rate limits or OS file descriptor limits
-	g.SetLimit(10)
+	g.SetLimit(10) // Limit concurrency to avoid hitting rate limits or OS file descriptor limits
 
 	for _, task := range allTasks {
-		t := task
 		g.Go(func() error {
-			exists, err := fileExists(t.Path)
+			exists, err := fileExists(task.Path)
 
 			if err != nil {
 				return err
@@ -53,7 +50,7 @@ func mainE(ctx context.Context, args ...string) error {
 				return nil
 			}
 
-			req, err := http.NewRequestWithContext(ctx, http.MethodGet, t.URL, nil)
+			req, err := http.NewRequestWithContext(ctx, http.MethodGet, task.URL, nil)
 
 			if err != nil {
 				return err
@@ -67,13 +64,13 @@ func mainE(ctx context.Context, args ...string) error {
 
 			defer resp.Body.Close()
 
-			err = os.MkdirAll(filepath.Dir(t.Path), 0755)
+			err = os.MkdirAll(filepath.Dir(task.Path), 0755)
 
 			if err != nil {
 				return err
 			}
 
-			out, err := os.Create(t.Path)
+			out, err := os.Create(task.Path)
 
 			if err != nil {
 				return err
