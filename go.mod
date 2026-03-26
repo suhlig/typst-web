@@ -1,12 +1,8 @@
 module typstweb
 
-go 1.26
+go 1.26.1
 
-require (
-	github.com/google/go-github/v83 v83.0.0
-	github.com/ulikunitz/xz v0.5.15
-	golang.org/x/sync v0.19.0
-)
+require github.com/suhlig/gosmos v0.0.0-20260326171342-9b82097f9d0c
 
 require (
 	dario.cat/mergo v1.0.2 // indirect
@@ -18,6 +14,7 @@ require (
 	github.com/fsnotify/fsnotify v1.9.0 // indirect
 	github.com/gobwas/glob v0.2.3 // indirect
 	github.com/gohugoio/hugo v0.149.1 // indirect
+	github.com/google/go-github/v84 v84.0.0 // indirect
 	github.com/google/go-querystring v1.2.0 // indirect
 	github.com/joho/godotenv v1.5.1 // indirect
 	github.com/mattn/go-colorable v0.1.14 // indirect
@@ -27,9 +24,15 @@ require (
 	github.com/spf13/afero v1.14.0 // indirect
 	github.com/spf13/cast v1.9.2 // indirect
 	github.com/tdewolff/parse/v2 v2.8.3 // indirect
+	github.com/ulikunitz/xz v0.5.15 // indirect
+	golang.org/x/sync v0.20.0 // indirect
 	golang.org/x/sys v0.35.0 // indirect
 	golang.org/x/text v0.28.0 // indirect
 	google.golang.org/protobuf v1.36.8 // indirect
 )
 
-tool github.com/air-verse/air
+tool (
+	github.com/air-verse/air
+	github.com/suhlig/gosmos/cmd/fetch-fonts
+	github.com/suhlig/gosmos/cmd/fetch-typst
+)
