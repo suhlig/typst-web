@@ -29,13 +29,16 @@ func main() {
 func mainE() error {
 	kodata := os.Getenv("KO_DATA_PATH")
 
-	typst, err := typst.NewCompiler(filepath.Join(kodata, "typst", runtime.GOOS, runtime.GOARCH, "typst"))
+	compiler, err := typst.NewCompileCommand(filepath.Join(kodata, "typst", runtime.GOOS, runtime.GOARCH, "typst"))
 
 	if err != nil {
 		return err
 	}
 
-	typst = typst.WithFontPath(filepath.Join(kodata, "fonts"))
+	compiler = compiler.
+		WithoutSystemFonts().
+		WithoutEmbeddedFonts().
+		WithFontPath(filepath.Join(kodata, "fonts"))
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodGet {
@@ -52,7 +55,7 @@ func mainE() error {
 
 		body := r.FormValue("source")
 
-		pdf, err := typst.Compile(body)
+		pdf, err := compiler.Run(body)
 
 		if err != nil {
 			http.Error(w, fmt.Sprintf("unable to read result PDF: %s", err.Error()), 500)
