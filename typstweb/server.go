@@ -15,19 +15,41 @@ var indexHTML string
 var indexTemplate = template.Must(template.New("index").Parse(indexHTML))
 
 type Server struct {
-	CompileCommand *typst.CompileCommand
-	FontsCommand   *typst.FontsCommand
+	compileCommand *typst.CompileCommand
+	fontsCommand   *typst.FontsCommand
 }
 
-func NewServer(compileCommand *typst.CompileCommand, fontsCommand *typst.FontsCommand) *Server {
-	return &Server{
-		CompileCommand: compileCommand,
-		FontsCommand:   fontsCommand,
+func NewServer(typstBinPath, fontsPath string) (*Server, error) {
+	compileCommand, err := typst.NewCompileCommand(
+		typstBinPath,
+		typst.WithoutSystemFonts(),
+		typst.WithoutEmbeddedFonts(),
+		typst.WithFontPath(fontsPath),
+	)
+
+	if err != nil {
+		return nil, err
 	}
+
+	fontsCommand, err := typst.NewFontsCommand(
+		typstBinPath,
+		typst.WithoutSystemFonts(),
+		typst.WithoutEmbeddedFonts(),
+		typst.WithFontPath(fontsPath),
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &Server{
+		compileCommand: compileCommand,
+		fontsCommand:   fontsCommand,
+	}, nil
 }
 
 func (s *Server) Get(w http.ResponseWriter, r *http.Request) {
-	fonts, err := s.FontsCommand.Run()
+	fonts, err := s.fontsCommand.Run()
 
 	if err != nil {
 		http.Error(w, fmt.Sprintf("could not list fonts: %s", err.Error()), 500)
@@ -52,7 +74,7 @@ func (s *Server) Post(w http.ResponseWriter, r *http.Request) {
 
 	body := r.FormValue("source")
 
-	pdf, err := s.CompileCommand.Run(body)
+	pdf, err := s.compileCommand.Run(body)
 
 	if err != nil {
 		http.Error(w, fmt.Sprintf("unable to read result PDF: %s", err.Error()), 500)

@@ -7,8 +7,6 @@ import (
 	"path/filepath"
 	"runtime"
 	"typstweb/typstweb"
-
-	"github.com/suhlig/gosmos/typst"
 )
 
 //go:generate go tool github.com/suhlig/gosmos/cmd/fetch-typst --path kodata/typst
@@ -33,29 +31,11 @@ func mainE() error {
 	typstBinPath := filepath.Join(koDataPath, "typst", runtime.GOOS, runtime.GOARCH, "typst")
 	fontsPath := filepath.Join(koDataPath, "fonts")
 
-	compileCommand, err := typst.NewCompileCommand(
-		typstBinPath,
-		typst.WithoutSystemFonts(),
-		typst.WithoutEmbeddedFonts(),
-		typst.WithFontPath(fontsPath),
-	)
+	srv, err := typstweb.NewServer(typstBinPath, fontsPath)
 
 	if err != nil {
 		return err
 	}
-
-	fontsCommand, err := typst.NewFontsCommand(
-		typstBinPath,
-		typst.WithoutSystemFonts(),
-		typst.WithoutEmbeddedFonts(),
-		typst.WithFontPath(fontsPath),
-	)
-
-	if err != nil {
-		return err
-	}
-
-	srv := typstweb.NewServer(compileCommand, fontsCommand)
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /", srv.Get)
