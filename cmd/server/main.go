@@ -30,16 +30,16 @@ func main() {
 func mainE() error {
 	kodata := os.Getenv("KO_DATA_PATH")
 
-	compiler, err := typst.NewCompileCommand(filepath.Join(kodata, "typst", runtime.GOOS, runtime.GOARCH, "typst"))
+	compiler, err := typst.NewCompileCommand(
+		filepath.Join(kodata, "typst", runtime.GOOS, runtime.GOARCH, "typst"),
+		typst.WithoutSystemFonts(),
+		typst.WithoutEmbeddedFonts(),
+		typst.WithFontPath(filepath.Join(kodata, "fonts")),
+	)
 
 	if err != nil {
 		return err
 	}
-
-	compiler = compiler.
-		WithoutSystemFonts().
-		WithoutEmbeddedFonts().
-		WithFontPath(filepath.Join(kodata, "fonts"))
 
 	tmpl, err := template.New("index").Parse(indexHTML)
 
@@ -49,17 +49,17 @@ func mainE() error {
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodGet {
-			fontsCommand, err := typst.NewFontsCommand(filepath.Join(kodata, "typst", runtime.GOOS, runtime.GOARCH, "typst"))
+			fontsCommand, err := typst.NewFontsCommand(
+				filepath.Join(kodata, "typst", runtime.GOOS, runtime.GOARCH, "typst"),
+				typst.WithoutSystemFonts(),
+				typst.WithoutEmbeddedFonts(),
+				typst.WithFontPath(filepath.Join(kodata, "fonts")),
+			)
 
 			if err != nil {
 				http.Error(w, fmt.Sprintf("could not build fonts command: %s", err.Error()), 500)
 				return
 			}
-
-			fontsCommand = fontsCommand.
-				WithoutSystemFonts().
-				WithoutEmbeddedFonts().
-				WithFontPath(filepath.Join(kodata, "fonts"))
 
 			fonts, err := fontsCommand.Run()
 
