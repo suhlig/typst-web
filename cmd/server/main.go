@@ -1,22 +1,18 @@
 package main
 
 import (
-	_ "embed"
 	"fmt"
-	"html/template"
 	"net/http"
 	"os"
 	"path/filepath"
 	"runtime"
+	"typstweb/typstweb"
 
 	"github.com/suhlig/gosmos/typst"
 )
 
 //go:generate go tool github.com/suhlig/gosmos/cmd/fetch-typst --path kodata/typst
-//go:generate go tool github.com/suhlig/gosmos/cmd/fetch-fonts --path kodata/fonts "Meie Script" "Roboto"
-
-//go:embed index.html
-var indexHTML string
+//go:generate go tool github.com/suhlig/gosmos/cmd/fetch-fonts --path kodata/fonts "Meie Script" Roboto"
 
 func main() {
 	err := mainE()
@@ -59,17 +55,7 @@ func mainE() error {
 		return err
 	}
 
-	indexTemplate, err := template.New("index").Parse(indexHTML)
-
-	if err != nil {
-		return fmt.Errorf("could not parse index template: %w", err)
-	}
-
-	srv := &typstweb.Server{
-		CompileCommand: compileCommand,
-		FontsCommand:   fontsCommand,
-		Template:       indexTemplate,
-	}
+	srv := typstweb.NewServer(compileCommand, fontsCommand)
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /", srv.Get)

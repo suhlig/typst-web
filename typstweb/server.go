@@ -1,6 +1,7 @@
 package typstweb
 
 import (
+	_ "embed"
 	"fmt"
 	"html/template"
 	"net/http"
@@ -8,10 +9,21 @@ import (
 	"github.com/suhlig/gosmos/typst"
 )
 
+//go:embed index.html
+var indexHTML string
+
+var indexTemplate = template.Must(template.New("index").Parse(indexHTML))
+
 type Server struct {
 	CompileCommand *typst.CompileCommand
 	FontsCommand   *typst.FontsCommand
-	Template       *template.Template
+}
+
+func NewServer(compileCommand *typst.CompileCommand, fontsCommand *typst.FontsCommand) *Server {
+	return &Server{
+		CompileCommand: compileCommand,
+		FontsCommand:   fontsCommand,
+	}
 }
 
 func (s *Server) Get(w http.ResponseWriter, r *http.Request) {
@@ -22,7 +34,7 @@ func (s *Server) Get(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = s.Template.Execute(w, struct{ Fonts []string }{Fonts: fonts})
+	err = indexTemplate.Execute(w, struct{ Fonts []string }{Fonts: fonts})
 
 	if err != nil {
 		http.Error(w, fmt.Sprintf("could not render template: %s", err.Error()), 500)
