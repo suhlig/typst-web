@@ -5,8 +5,9 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"runtime"
 	"typstweb/typstweb"
+
+	"github.com/suhlig/gosmos/typst"
 )
 
 //go:generate go tool github.com/suhlig/gosmos/cmd/fetch-typst --path kodata/typst
@@ -28,7 +29,7 @@ func mainE() error {
 		koDataPath = "kodata" // Fall back to kodata next to the binary, or relative to source
 	}
 
-	typstBinPath := filepath.Join(koDataPath, "typst", runtime.GOOS, runtime.GOARCH, "typst")
+	typstBinPath := typst.CurrentBinPath(filepath.Join(koDataPath, "typst"))
 	fontsPath := filepath.Join(koDataPath, "fonts")
 
 	srv, err := typstweb.NewServer(typstBinPath, fontsPath)
