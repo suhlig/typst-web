@@ -28,60 +28,59 @@ func main() {
 }
 
 func mainE() error {
-	kodata := os.Getenv("KO_DATA_PATH")
+	koDataPath := os.Getenv("KO_DATA_PATH")
 
-	if kodata == "" {
-		kodata = "kodata" // Fall back to kodata/ next to the binary, or relative to source
+	if koDataPath == "" {
+		koDataPath = "kodata" // Fall back to kodata next to the binary, or relative to source
 	}
 
+	typstBinary := filepath.Join(koDataPath, "typst", runtime.GOOS, runtime.GOARCH, "typst")
+
 	compiler, err := typst.NewCompileCommand(
-		filepath.Join(kodata, "typst", runtime.GOOS, runtime.GOARCH, "typst"),
+		typstBinary,
 		typst.WithoutSystemFonts(),
 		typst.WithoutEmbeddedFonts(),
-		typst.WithFontPath(filepath.Join(kodata, "fonts")),
+		typst.WithFontPath(filepath.Join(koDataPath, "fonts")),
 	)
 
 	if err != nil {
 		return err
 	}
 
-	tmpl, err := template.New("index").Parse(indexHTML)
+	fontsCommand, err := typst.NewFontsCommand(
+		typstBinary,
+		typst.WithoutSystemFonts(),
+		typst.WithoutEmbeddedFonts(),
+		typst.WithFontPath(filepath.Join(koDataPath, "fonts")),
+	)
+
+	if err != nil {
+		return err
+	}
+
+	indexTemplate, err := template.New("index").Parse(indexHTML)
 
 	if err != nil {
 		return fmt.Errorf("could not parse index template: %w", err)
 	}
 
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == http.MethodGet {
-			fontsCommand, err := typst.NewFontsCommand(
-				filepath.Join(kodata, "typst", runtime.GOOS, runtime.GOARCH, "typst"),
-				typst.WithoutSystemFonts(),
-				typst.WithoutEmbeddedFonts(),
-				typst.WithFontPath(filepath.Join(kodata, "fonts")),
-			)
+	getRoot := func(w http.ResponseWriter, r *http.Request) {
+		fonts, err := fontsCommand.Run()
 
-			if err != nil {
-				http.Error(w, fmt.Sprintf("could not build fonts command: %s", err.Error()), 500)
-				return
-			}
-
-			fonts, err := fontsCommand.Run()
-
-			if err != nil {
-				http.Error(w, fmt.Sprintf("could not list fonts: %s", err.Error()), 500)
-				return
-			}
-
-			err = tmpl.Execute(w, struct{ Fonts []string }{Fonts: fonts})
-
-			if err != nil {
-				http.Error(w, fmt.Sprintf("could not render template: %s", err.Error()), 500)
-				return
-			}
-
+		if err != nil {
+			http.Error(w, fmt.Sprintf("could not list fonts: %s", err.Error()), 500)
 			return
 		}
 
+		err = indexTemplate.Execute(w, struct{ Fonts []string }{Fonts: fonts})
+
+		if err != nil {
+			http.Error(w, fmt.Sprintf("could not render template: %s", err.Error()), 500)
+			return
+		}
+	}
+
+	postRoot := func(w http.ResponseWriter, r *http.Request) {
 		err := r.ParseForm()
 
 		if err != nil {
@@ -100,7 +99,10 @@ func mainE() error {
 
 		w.Header().Set("Content-Type", "application/pdf")
 		w.Write(pdf)
-	})
+	}
+
+	http.HandleFunc("GET /", getRoot)
+	http.HandleFunc("POST /", postRoot)
 
 	return http.ListenAndServe(":8080", nil)
 }
