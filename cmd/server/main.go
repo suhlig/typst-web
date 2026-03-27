@@ -12,8 +12,8 @@ import (
 	"github.com/suhlig/gosmos/typst"
 )
 
-//go:generate go tool github.com/suhlig/gosmos/cmd/fetch-typst
-//go:generate go tool github.com/suhlig/gosmos/cmd/fetch-fonts --path $KO_DATA_PATH/fonts "Meie Script" "Roboto"
+//go:generate go tool github.com/suhlig/gosmos/cmd/fetch-typst --path kodata/typst
+//go:generate go tool github.com/suhlig/gosmos/cmd/fetch-fonts --path kodata/fonts "Meie Script" "Roboto"
 
 //go:embed index.html
 var indexHTML string
@@ -29,6 +29,10 @@ func main() {
 
 func mainE() error {
 	kodata := os.Getenv("KO_DATA_PATH")
+
+	if kodata == "" {
+		kodata = "kodata" // Fall back to kodata/ next to the binary, or relative to source
+	}
 
 	compiler, err := typst.NewCompileCommand(
 		filepath.Join(kodata, "typst", runtime.GOOS, runtime.GOARCH, "typst"),
