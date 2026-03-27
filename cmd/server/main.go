@@ -3,6 +3,7 @@ package main
 import (
 	_ "embed"
 	"fmt"
+	"html/template"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -40,9 +41,40 @@ func mainE() error {
 		WithoutEmbeddedFonts().
 		WithFontPath(filepath.Join(kodata, "fonts"))
 
+	tmpl, err := template.New("index").Parse(indexHTML)
+
+	if err != nil {
+		return fmt.Errorf("could not parse index template: %w", err)
+	}
+
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodGet {
-			w.Write([]byte(indexHTML))
+			fontsCommand, err := typst.NewFontsCommand(filepath.Join(kodata, "typst", runtime.GOOS, runtime.GOARCH, "typst"))
+
+			if err != nil {
+				http.Error(w, fmt.Sprintf("could not build fonts command: %s", err.Error()), 500)
+				return
+			}
+
+			fontsCommand = fontsCommand.
+				WithoutSystemFonts().
+				WithoutEmbeddedFonts().
+				WithFontPath(filepath.Join(kodata, "fonts"))
+
+			fonts, err := fontsCommand.Run()
+
+			if err != nil {
+				http.Error(w, fmt.Sprintf("could not list fonts: %s", err.Error()), 500)
+				return
+			}
+
+			err = tmpl.Execute(w, struct{ Fonts []string }{Fonts: fonts})
+
+			if err != nil {
+				http.Error(w, fmt.Sprintf("could not render template: %s", err.Error()), 500)
+				return
+			}
+
 			return
 		}
 
