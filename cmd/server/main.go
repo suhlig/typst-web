@@ -13,7 +13,7 @@ import (
 )
 
 //go:generate go tool github.com/suhlig/gosmos/cmd/fetch-typst
-//go:generate go tool github.com/suhlig/gosmos/cmd/fetch-fonts "Meie Script" "Roboto"
+//go:generate go tool github.com/suhlig/gosmos/cmd/fetch-fonts --path kodata/fonts "Meie Script" "Roboto"
 
 //go:embed index.html
 var indexHTML string
