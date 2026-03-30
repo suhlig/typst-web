@@ -74,13 +74,17 @@ func (s *Server) Post(w http.ResponseWriter, r *http.Request) {
 
 	body := r.FormValue("source")
 
-	pdf, err := s.compileCommand.Run(body)
+	result, err := s.compileCommand.Run(body)
 
 	if err != nil {
 		http.Error(w, fmt.Sprintf("unable to read result PDF: %s", err.Error()), 500)
 		return
 	}
 
+	for _, d := range result.Diagnostics {
+		fmt.Printf("[%s] %s\n", d.Level, d.Message)
+	}
+
 	w.Header().Set("Content-Type", "application/pdf")
-	w.Write(pdf)
+	w.Write(result.PDF)
 }
