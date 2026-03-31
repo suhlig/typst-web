@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log/slog"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -24,19 +25,19 @@ func main() {
 
 func mainE() error {
 	koDataPath := os.Getenv("KO_DATA_PATH")
-
 	typstBinPath := typst.CurrentBinPath(filepath.Join(koDataPath, "typst"))
 	fontsPath := filepath.Join(koDataPath, "fonts")
+	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 
-	srv, err := typstweb.NewServer(typstBinPath, fontsPath)
+	server, err := typstweb.NewServer(typstBinPath, fontsPath, typstweb.WithLogger(logger))
 
 	if err != nil {
 		return err
 	}
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("GET /", srv.Get)
-	mux.HandleFunc("POST /", srv.Post)
+	mux.HandleFunc("GET /", server.Get)
+	mux.HandleFunc("POST /", server.Post)
 
 	return http.ListenAndServe(":8080", mux)
 }
