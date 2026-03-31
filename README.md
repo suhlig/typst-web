@@ -17,7 +17,7 @@ go generate ./cmd/server
 # Run
 
 ```command
-docker run -p 8080:8080 $(ko build --local --platform=linux/arm64 ./cmd/server)
+docker run -p 8080:8080 $(go tool ko build --local --platform=linux/arm64 ./cmd/server)
 ```
 
 # FAQ
