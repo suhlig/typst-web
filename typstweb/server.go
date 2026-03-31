@@ -104,14 +104,14 @@ func (s *Server) Post(w http.ResponseWriter, r *http.Request) {
 
 	result, err := s.compileCommand.Run(body)
 
+	for _, d := range result.Diagnostics {
+		s.logger.Warn("typst diagnostic", "level", d.Level, "message", d.Message)
+	}
+
 	if err != nil {
 		s.logger.Error("unable to compile typst source", "err", err)
 		http.Error(w, fmt.Sprintf("unable to read result PDF: %s", err.Error()), 500)
 		return
-	}
-
-	for _, d := range result.Diagnostics {
-		s.logger.Warn("typst diagnostic", "level", d.Level, "message", d.Message)
 	}
 
 	w.Header().Set("Content-Type", "application/pdf")
