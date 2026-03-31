@@ -11,7 +11,7 @@ import (
 )
 
 //go:generate go tool github.com/suhlig/gosmos/cmd/fetch-typst --path kodata/typst
-//go:generate go tool github.com/suhlig/gosmos/cmd/fetch-fonts --path kodata/fonts "Meie Script" Roboto"
+//go:generate go tool github.com/suhlig/gosmos/cmd/fetch-fonts --path kodata/fonts "Meie Script" Roboto
 
 func main() {
 	err := mainE()
@@ -24,10 +24,6 @@ func main() {
 
 func mainE() error {
 	koDataPath := os.Getenv("KO_DATA_PATH")
-
-	if koDataPath == "" {
-		koDataPath = "kodata" // Fall back to kodata next to the binary, or relative to source
-	}
 
 	typstBinPath := typst.CurrentBinPath(filepath.Join(koDataPath, "typst"))
 	fontsPath := filepath.Join(koDataPath, "fonts")
