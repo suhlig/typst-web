@@ -24,12 +24,18 @@ func main() {
 }
 
 func mainE() error {
-	koDataPath := os.Getenv("KO_DATA_PATH")
-	typstBinPath := typst.CurrentBinPath(filepath.Join(koDataPath, "typst"))
-	fontsPath := filepath.Join(koDataPath, "fonts")
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 
-	server, err := typstweb.NewServer(typstBinPath, fontsPath, typstweb.WithLogger(logger))
+	koDataPath := os.Getenv("KO_DATA_PATH")
+	logger.Info("using", "KO_DATA_PATH", koDataPath)
+
+	typstBinPath := typst.CurrentBinPath(filepath.Join(koDataPath, "typst"))
+	logger.Info("using typst binary from", "typstBinPath", typstBinPath)
+
+	fontsPath := filepath.Join(koDataPath, "fonts")
+	logger.Info("reading fonts from", "fontsPath", fontsPath)
+
+	server, err := typstweb.NewServer(typstBinPath, fontsPath, typstweb.WithLogger(logger.WithGroup("server")))
 
 	if err != nil {
 		return err

@@ -20,6 +20,8 @@ go generate ./cmd/server
 docker run -p 8080:8080 $(go tool ko build --local --platform=linux/arm64 ./cmd/server)
 ```
 
+Ko will bundle the typst binaries and fonts as [static assets](https://ko.build/features/static-assets) into the container image, so that the Go program can read it at `KO_DATA_PATH`.
+
 # FAQ
 
 ## Why aren't you embedding the typst program into the Go binary?
