@@ -1,6 +1,6 @@
 module typstweb
 
-go 1.26.1
+go 1.26.9
 
 require github.com/suhlig/gosmos v0.0.0-20260328175823-f998188eb89c
 
